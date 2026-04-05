@@ -1,0 +1,80 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  db:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: agentflow
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: agentflow
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U agentflow"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis Cache & Message Broker
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # FastAPI Backend
+  backend:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_URL: postgresql://agentflow:password@db:5432/agentflow
+      REDIS_URL: redis://redis:6379
+      DEBUG: "True"
+      SECRET_KEY: docker-secret-key-change-in-production
+    env_file:
+      - .env
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - .:/app
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+
+  # Celery Worker
+  celery:
+    build: .
+    environment:
+      DATABASE_URL: postgresql://agentflow:password@db:5432/agentflow
+      REDIS_URL: redis://redis:6379
+    env_file:
+      - .env
+    depends_on:
+      - db
+      - redis
+    command: celery -A app.celery_app worker -l info
+
+  # Celery Beat (Scheduler)
+  celery-beat:
+    build: .
+    environment:
+      DATABASE_URL: postgresql://agentflow:password@db:5432/agentflow
+      REDIS_URL: redis://redis:6379
+    env_file:
+      - .env
+    depends_on:
+      - db
+      - redis
+    command: celery -A app.celery_app beat -l info
+
+volumes:
+  postgres_data:
