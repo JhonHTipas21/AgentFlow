@@ -64,11 +64,14 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+import os
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
+
 # ─── Include Routers ─────────────────────────────────────
 app.include_router(agents.router, prefix="/agents", tags=["Agents"])
 app.include_router(workflows.router, prefix="/workflows", tags=["Workflows"])
 app.include_router(tools.router, prefix="/tools", tags=["Tools"])
-
 
 # ═══════════════════════════════════════════════════════
 # HEALTH & SYSTEM ENDPOINTS
@@ -146,6 +149,25 @@ async def general_exception_handler(request, exc):
         status_code=500,
         content={"detail": "Internal server error", "status_code": 500},
     )
+
+# ─── Serve Frontend (Catch-all must be last) ────────────
+frontend_dist = os.path.join(os.path.dirname(os.path.dirname(__file__)), "frontend", "dist")
+
+if os.path.exists(frontend_dist):
+    logger.info(f"Serving frontend from {frontend_dist}")
+    app.mount("/assets", StaticFiles(directory=os.path.join(frontend_dist, "assets")), name="assets")
+    
+    @app.get("/{catchall:path}", include_in_schema=False)
+    def serve_frontend(catchall: str):
+        file_path = os.path.join(frontend_dist, catchall)
+        if os.path.exists(file_path) and os.path.isfile(file_path):
+            return FileResponse(file_path)
+            
+        index_file = os.path.join(frontend_dist, "index.html")
+        if os.path.exists(index_file):
+            return FileResponse(index_file)
+            
+        return JSONResponse(status_code=404, content={"detail": "Frontend build not found"})
 
 
 # ─── Run directly ───────────────────────────────────────
