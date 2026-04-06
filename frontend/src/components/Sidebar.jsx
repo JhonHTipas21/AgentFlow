@@ -19,7 +19,7 @@ export default function Sidebar() {
     <aside className="sidebar">
       <div className="sidebar-header">
         <div className="sidebar-logo">
-          <div className="logo-icon">⚡</div>
+          <div className="logo-icon"><Bot size={22} /></div>
           <div>
             <h1>AgentFlow</h1>
             <span>v1.0.0</span>
