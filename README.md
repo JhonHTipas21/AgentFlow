@@ -506,6 +506,6 @@ MIT License - see [LICENSE](LICENSE) file for details
 
 ---
 
-**Made with ❤️ by [Jhon Harvey Tipas Solis](https://github.com/JhonHTipas21)**
+**by [Jhon Harvey Tipas Solis](https://github.com/JhonHTipas21)**
 
 ⭐ If AgentFlow helps you, please star it on GitHub!
