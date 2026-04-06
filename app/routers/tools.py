@@ -33,5 +33,6 @@ def get_tool_details(tool_name: str):
     """Get detailed information about a specific tool."""
     tool = AVAILABLE_TOOLS.get(tool_name)
     if not tool:
-        return {"error": f"Tool '{tool_name}' not found"}
+        from fastapi import HTTPException
+        raise HTTPException(status_code=404, detail=f"Tool '{tool_name}' not found")
     return tool.to_dict()
